@@ -5,11 +5,48 @@ const Data = require('./models/data');
 const Zone=require('./models/zone');
 const Sensor=require('./models/sensor');
 const bodyParser = require('body-parser');
+const { graphqlHTTP } = require('express-graphql');
+const { buildSchema } = require('graphql');
 const PORT = process.env.PORT || 5000;
 
-const MONGODB_URI =
-  'mongodb+srv://coe558:kfupm@coe558.9j0xsua.mongodb.net/?retryWrites=true&w=majority';
+const MONGODB_URI ='mongodb+srv://coe558:kfupm@coe558.9j0xsua.mongodb.net/?retryWrites=true&w=majority';
 
+// GraphQL schema
+const schema = buildSchema(`
+  type Query {
+    getAllData: [Data]
+    getSensor(sensorId: Int!): Sensor
+    getAllSensors: [Sensor]
+    getZone(zoneName:String!): Zone
+    getAllZones: [Zone]
+  }
+
+  type Mutation {
+    createSensor(sensorId: Int!, sensorName: String!, sensorType: String!, zoneId: Int!): Sensor
+    createZone(zoneId: Int!, zoneName: String!): Zone
+    createData(value: Float!, timestamp: String, sensorId: Int!): Data
+  }
+
+  type Data {
+    value: Float!
+    timestamp: String
+    sensorId: Int!
+  }
+
+  type Sensor {
+    sensorId: Int
+    sensorName: String
+    sensorType: String
+    data: [Data]
+    zoneId: Int
+  }
+
+  type Zone {
+    zoneId: Int!
+    zoneName: String!
+    sensors: [Sensor]
+  }
+`);
 const app = express();
 app.use(cors());
 app.use(bodyParser.json()); // to parse the body from POST requests
@@ -22,6 +59,113 @@ mongoose.connect(MONGODB_URI)
   .catch((error) => {
     console.error('Error connecting to MongoDB:', error);
   });
+
+
+// Resolvers
+const root = {
+   
+    getAllData: () => {
+       try{
+        const data = Data.find({})
+        return data
+        }catch(err){
+            console.log(err)
+        }
+    },
+    getSensor: ({ sensorId }) => {
+        try{
+            const sensor = Sensor.findOne({sensorId:sensorId}).populate("data")
+            return sensor
+        
+        }catch(err){
+            console.log(err)
+        }
+    },
+    getAllSensors: () => {
+      try{
+        const sensors = Sensor.find()
+        return sensors
+      }catch(err){
+        console.log(err)
+      }
+    },
+    getZone: ({ zoneName }) => {
+        try{
+            const zone = Zone.findOne({zoneName:zoneName}).populate({path: 'sensors',populate: {path: 'data'}})
+            return zone
+        
+        }catch(err){
+            console.log(err)
+        }
+    },
+    getAllZones: () => {
+        try{
+            const zones = Zone.find().populate({path: 'sensors',populate: {path: 'data'}})
+            return zones
+        
+        }catch(err){
+            console.log(err)
+        }
+    },
+    createData: ({ value, sensorId }) => {
+        try{
+            const newData = new Data({ value: value, sensorId: sensorId });
+            newData.save();
+            Sensor.findOne({sensorId:sensorId}).then(
+                (Sensor)=>{
+                    Sensor.data.push(newData._id);
+                    Sensor.save();
+                
+                })
+            return newData;
+        }catch(err){
+            console.log(err)
+        }
+
+    },
+    createSensor: ({ sensorId, sensorName, sensorType, zoneId }) => {
+        try{
+            const newSensor = new Sensor({ sensorId: sensorId, sensorName: sensorName, sensorType: sensorType, zoneId: zoneId });
+            newSensor.save();
+            Zone.findOne({zoneId:zoneId}).then(
+                (Zone)=>{
+                    Zone.sensors.push(newSensor._id);
+                    Zone.save();})
+            return newSensor ;
+        }catch(err){
+            if(err.code == 11000){
+                throw new Error("Sensor already exists");
+            }else{
+                throw new Error("Error creating sensor");
+            }
+        }
+    
+    },
+    createZone: ({ zoneId, zoneName }) => {
+      try{
+        const newZone = new Zone({ zoneId: zoneId, zoneName: zoneName });
+        newZone.save();
+        return newZone
+      }catch(error){
+        if(error.code == 11000){
+            throw new Error("Zone already exists");
+
+        }else{
+            throw new Error("Error creating zone");
+        
+        }
+      }
+    }
+  };
+  
+  app.use('/graphql', graphqlHTTP({
+    schema: schema,
+    rootValue: root,
+    graphiql: true,
+  }));
+
+
+
 
 // REST APIs
 // Fetch All Records
