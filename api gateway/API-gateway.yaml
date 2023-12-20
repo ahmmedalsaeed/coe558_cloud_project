@@ -1,0 +1,127 @@
+swagger: "2.0"
+info:
+  title: coe558 project api
+  description: This is a project API.
+  version: 1.0.0
+paths:
+  /zone:
+    post:
+      summary: Add a new zone
+      operationId: addZone
+      x-google-backend:
+        address: https://coebe-jnsbi3o3ma-uc.a.run.app/zone  
+      description: Adds a new zone to the database
+      parameters:
+        - in: body
+          name: zone
+          description: Zone object to add
+          schema:
+            type: object
+            properties: 
+              zoneId:
+                type: integer
+                description: ID of the zone
+                example: 1
+              zoneName:
+                type: string
+                description: Name of the zone
+                example: Zone 1
+
+      responses:
+        '200':
+          description: Zone added successfully
+        '400':
+          description: Invalid zone data
+  /sensor:
+    post:
+      summary: Add a new sensor
+      operationId: addSensor
+      x-google-backend:
+        address: https://coebe-jnsbi3o3ma-uc.a.run.app/sensor
+      description: Adds a new sensor to the database
+      parameters:
+        - in: body
+          name: sensor
+          description: Sensor object to add
+          schema:
+            type: object
+            properties: 
+              sensorId:
+                type: integer
+                description: ID of the sensor
+                example: 1
+              sensorName:
+                type: string
+                description: Name of the sensor
+                example: Sensor 1
+              sensorType:
+                type: string
+                description: Type of the sensor
+                example: Tempreture
+              zoneId:
+                type: integer
+                description: ID of the zone
+                example: 1
+              
+      responses:
+        '200':
+          description: Sensor added successfully
+        '400':
+          description: Invalid sensor data
+  /data:
+    post:
+      summary: Add a new data
+      operationId: addData
+      x-google-backend:
+        address: https://us-central1-coe558-project-408615.cloudfunctions.net/addData
+      parameters:
+        - name: number
+          in: body
+          description: data to add
+          schema:
+            type: object
+            properties:
+              value:
+                type: integer
+                description: Value of the data
+              sensorId:
+                type: integer
+                description: ID of the sensor
+      responses:
+        "200":
+          description: Data added successfully
+        "400":
+          description: Invalid
+  /getsensor:
+    get:
+      summary: Get all sensors
+      operationId: getSensors
+      x-google-backend:
+        address: https://coebe-jnsbi3o3ma-uc.a.run.app/getsensors
+      responses:
+        "200":
+          description: Sensors retrieved successfully
+        "400":
+          description: Invalid
+  /getdata:
+    get:
+      summary: Get all data
+      operationId: getData
+      x-google-backend:
+        address: https://coebe-jnsbi3o3ma-uc.a.run.app/getdata
+      responses:
+        "200":
+          description: Data retrieved successfully
+        "400":
+          description: Invalid
+  /getzones:
+    get:
+      summary: Get all zones
+      operationId: getzones
+      x-google-backend:
+        address: https://coebe-jnsbi3o3ma-uc.a.run.app/getzones
+      responses:
+        "200":
+          description: Data retrieved successfully
+        "400":
+          description: Invalid
